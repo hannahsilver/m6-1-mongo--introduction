@@ -1,5 +1,5 @@
 const assert = require("assert");
-const { MongoClient, ResumeToken } = require("mongodb");
+const { MongoClient } = require("mongodb");
 
 require("dotenv").config();
 const { MONGO_URI } = process.env;
@@ -76,4 +76,50 @@ const getGreetings = async (req, res) => {
   client.close();
 };
 
-module.exports = { createGreeting, getGreeting, getGreetings };
+const deleteGreeting = async (req, res) => {
+  const { _id } = req.params;
+  try {
+    const client = await MongoClient(MONGO_URI, options);
+    await client.connect();
+
+    const db = client.db("exercise_1");
+
+    const r = await db.collection("greetings").deleteOne({ _id });
+    assert.equal(1, r.deletedCount);
+
+    res.status(204).json({ status: 204, data: _id });
+    client.close();
+  } catch (err) {
+    console.log(err.stack);
+    res.status(500).json({ status: 500, message: "error" });
+  }
+};
+
+const updateGreeting = async (req, res) => {
+  const { _id } = req.params;
+  const newValues = { $set: { ...req.body } }; //{$set: {hello:salut}}
+
+  const query = { _id }; //{_id: 'KM'}
+  const client = await MongoClient(MONGO_URI, options);
+  await client.connect();
+
+  const db = client.db("exercise_1");
+
+  const r = await db.collection("greetings").updateOne(query, newValues);
+  // const r = await db.collection("greetings").updateOne({_id:'KM'}, {$set: {hello:'salut', goodbye:'bye', _id:'EN'}});
+
+  assert.equal(1, r.matchedCount);
+  assert.equal(1, r.modifiedCount);
+
+  client.close();
+
+  res.status(200).json({ status: 200, _id, ...req.body });
+};
+
+module.exports = {
+  createGreeting,
+  getGreeting,
+  getGreetings,
+  deleteGreeting,
+  updateGreeting,
+};
